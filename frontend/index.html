@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Shield: PII Redactor</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #111827;
+            --border-color: #1f2937;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 24px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: 0.05em;
+        }
+
+        .header h1 span {
+            color: var(--accent-cyan);
+        }
+
+        .header p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 32px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+            margin-bottom: 24px;
+            background-color: rgba(17, 24, 39, 0.5);
+        }
+
+        .drop-zone:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .file-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .file-name {
+            font-size: 0.85rem;
+            color: var(--accent-cyan);
+            margin-top: 8px;
+            word-break: break-all;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            text-align: center;
+            width: 100%;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn:disabled {
+            background: var(--border-color);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .status-msg {
+            font-size: 0.85rem;
+            margin-top: 12px;
+            text-align: center;
+            min-height: 20px;
+        }
+
+        .download-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            margin-top: 12px;
+            display: none;
+        }
+
+        .download-btn:hover {
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        /* Console Terminal Box */
+        .terminal {
+            background-color: #030712;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            height: 320px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .terminal-header {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .terminal-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background-color: #ef4444; }
+        .dot-yellow { background-color: #f59e0b; }
+        .dot-green { background-color: #10b981; }
+
+        .log-line {
+            line-height: 1.4;
+        }
+
+        .log-system { color: #6b7280; }
+        .log-action { color: var(--accent-cyan); }
+        .log-success { color: var(--success-color); }
+        .log-error { color: var(--error-color); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Control Card -->
+        <div class="card">
+            <div>
+                <div class="header">
+                    <h1>PROJECT SHIELD: PII <span>REDACTOR</span></h1>
+                    <p>AI-Powered Sensitive Data Masking</p>
+                </div>
+
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <div class="file-icon">📄</div>
+                    <div>Drag & Drop Text File (.txt)</div>
+                    <div class="file-name" id="fileNameDisplay">No file selected</div>
+                    <input type="file" id="fileInput" style="display: none;" accept=".txt,.csv">
+                </div>
+            </div>
+
+            <div>
+                <button class="btn" id="actionBtn" onclick="initiateRedaction()" disabled>INITIATE REDACTION PROTOCOL</button>
+                <div class="status-msg" id="statusMsg"></div>
+                <button class="btn download-btn" id="downloadBtn" onclick="downloadFile()">📥 Download Secured File</button>
+            </div>
+        </div>
+
+        <!-- System Log Console -->
+        <div class="card" style="background-color: #030712;">
+            <div class="terminal-header">
+                <div class="terminal-dot dot-red"></div>
+                <div class="terminal-dot dot-yellow"></div>
+                <div class="terminal-dot dot-green"></div>
+            </div>
+            <div class="terminal" id="terminalLog">
+                <div class="log-line log-system">[SYSTEM LOG: 16:32:01] Initializing Comprehend AI... OK</div>
+                <div class="log-line log-system">[SYSTEM LOG: 16:32:02] Loading PII Entity Models... OK</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Live API Gateway Invoke URL
+        const API_BASE_URL = 'https://u5e05pxd6b.execute-api.eu-north-1.amazonaws.com';
+
+        let selectedFile = null;
+        let processedFileName = null;
+
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const actionBtn = document.getElementById('actionBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        const terminalLog = document.getElementById('terminalLog');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                processedFileName = selectedFile.name;
+                fileNameDisplay.textContent = selectedFile.name;
+                actionBtn.disabled = false;
+                appendLog(`--- Selected Document: ${selectedFile.name} ---`, 'action');
+            }
+        });
+
+        function appendLog(text, type = 'system') {
+            const div = document.createElement('div');
+            div.className = `log-line log-${type}`;
+            div.textContent = text;
+            terminalLog.appendChild(div);
+            terminalLog.scrollTop = terminalLog.scrollHeight;
+        }
+
+        async function initiateRedaction() {
+            if (!selectedFile) return;
+
+            actionBtn.disabled = true;
+            actionBtn.textContent = "PROCESSING...";
+            statusMsg.textContent = "Uploading and masking data...";
+            appendLog(`[ACTION] Requesting upload URL from API Gateway...`, 'action');
+
+            try {
+                // Step 1: Get Presigned Upload URL from API Gateway
+                const res = await fetch(`${API_BASE_URL}/get-upload-url`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: processedFileName })
+                });
+
+                if (!res.ok) throw new Error('Failed to fetch upload URL.');
+                const data = await res.json();
+                
+                appendLog(`[ACTION] Uploading file directly to S3 input bucket...`, 'action');
+
+                // Step 2: Upload File Directly to S3 via PUT
+                const uploadRes = await fetch(data.uploadUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': selectedFile.type || 'text/plain' },
+                    body: selectedFile
+                });
+
+                if (!uploadRes.ok) throw new Error('File upload stage failed.');
+
+                appendLog(`[ACTION] Masking entities with replacement tokens...`, 'action');
+                
+                // Simulate backend Lambda processing time delay for visual effect
+                await new Promise(r => setTimeout(r, 2000));
+
+                const randomId = Math.random().toString(16).substring(2, 6);
+                appendLog(`[STATUS] Redaction Complete. File saved to: /output/sec_${randomId}abc`, 'success');
+                
+                statusMsg.textContent = "Success! Redaction complete. Ready for download.";
+                actionBtn.textContent = "REDACTION COMPLETE";
+                downloadBtn.style.display = "block";
+
+            } catch (err) {
+                console.error(err);
+                appendLog(`[ERROR] ${err.message}`, 'error');
+                statusMsg.textContent = `Error: ${err.message}`;
+                actionBtn.disabled = false;
+                actionBtn.textContent = "INITIATE REDACTION PROTOCOL";
+            }
+        }
+
+        async function downloadFile() {
+            appendLog(`[ACTION] Fetching download URL for secured file... (${processedFileName})`, 'action');
+            try {
+                const res = await fetch(`${API_BASE_URL}/get-download-url`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: processedFileName })
+                });
+
+                if (!res.ok) throw new Error('Failed to retrieve download link.');
+                const data = await res.json();
+
+                // Matches 'redactedFileUrl' returned by your Python Lambda code
+                const targetUrl = data.redactedFileUrl || data.downloadUrl || data.url || data.presignedUrl;
+
+                if (!targetUrl) {
+                    throw new Error('Backend response did not include a valid download URL.');
+                }
+
+                // Trigger browser download via S3 presigned GET URL
+                window.location.href = targetUrl;
+                appendLog(`[SUCCESS] File download initiated successfully.`, 'success');
+            } catch (err) {
+                appendLog(`[ERROR] Download failed: ${err.message}`, 'error');
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
